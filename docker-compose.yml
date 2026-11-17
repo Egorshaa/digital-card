@@ -1,0 +1,31 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: ${DATABASE_USER:-postgres}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-password}
+      POSTGRES_DB: ${DATABASE_NAME:-digital_card}
+    ports:
+      - '${DATABASE_PORT_DOCKER:-6432}:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DATABASE_USER:-postgres} -d ${DATABASE_NAME:-digital_card}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      APP_TYPE: ${APP_TYPE:-prod}
+      PORT: 3000
+      DATABASE_URL: postgresql://${DATABASE_USER:-postgres}:${DATABASE_PASSWORD:-password}@db:5432/${DATABASE_NAME:-digital_card}?schema=public
+    ports:
+      - '${APP_PORT:-3000}:3000'
+
+volumes:
+  pgdata:

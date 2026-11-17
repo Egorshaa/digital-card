@@ -21,6 +21,7 @@ docker compose up --build
 | Что              | Адрес                          |
 | ---------------- | ------------------------------ |
 | Apollo Sandbox   | http://localhost:3000/graphql  |
+| Swagger (REST)   | http://localhost:3000/docs     |
 | Health-check     | http://localhost:3000/ping     |
 
 ### Локальная разработка (без контейнера для приложения)
@@ -54,6 +55,11 @@ query {
 ```
 
 Можно запросить любое подмножество полей, а также конкретную визитку: `profile(slug: "egor-shipkin")`.
+
+## REST и Swagger (дополнительно)
+
+Основной API — GraphQL. Дополнительно есть REST-ручки со Swagger на `/docs`: `GET /profile` (визитка целиком), `GET /profile/links|skills|experience|projects`, у всех необязательный query-параметр `slug`.
+Это тонкий фасад: контроллер вызывает те же сервисы, что и GraphQL, и не содержит своей логики или обращений к БД.
 
 ## Структура
 

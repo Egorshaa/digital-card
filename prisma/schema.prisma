@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum LinkType {
+  GITHUB
+  LINKEDIN
+  TELEGRAM
+  EMAIL
+  OTHER
+
+  @@map("link_type")
+}
+
+model Profile {
+  id          Int      @id @default(autoincrement())
+  slug        String   @unique
+  name        String
+  title       String
+  description String
+  location    String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  links      ProfileLink[]
+  skills     Skill[]
+  experience Experience[]
+  projects   Project[]
+
+  @@map("profile")
+}
+
+model ProfileLink {
+  id        Int      @id @default(autoincrement())
+  profileId Int      @map("profile_id")
+  type      LinkType
+  label     String
+  url       String
+  sortOrder Int      @default(0) @map("sort_order")
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+  @@map("profile_link")
+}
+
+model Skill {
+  id        Int    @id @default(autoincrement())
+  profileId Int    @map("profile_id")
+  name      String
+  category  String
+  sortOrder Int    @default(0) @map("sort_order")
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, name])
+  @@map("skill")
+}
+
+model Experience {
+  id           Int       @id @default(autoincrement())
+  profileId    Int       @map("profile_id")
+  company      String
+  position     String
+  startDate    DateTime  @map("start_date")
+  endDate      DateTime? @map("end_date")
+  achievements String[]
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+  @@map("experience")
+}
+
+model Project {
+  id           Int      @id @default(autoincrement())
+  profileId    Int      @map("profile_id")
+  name         String
+  description  String
+  url          String
+  technologies String[]
+  sortOrder    Int      @default(0) @map("sort_order")
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+  @@map("project")
+}

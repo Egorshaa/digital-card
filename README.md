@@ -191,6 +191,20 @@ docker-compose.yml         Приложение и PostgreSQL
 | `npm run prisma:migrate` | Создание миграции при разработке схемы |
 | `npm run format` | Форматирование TypeScript-файлов |
 
+## Публичное демо на Render
+
+В корне репозитория находится `render.yaml` для Render Blueprint. Он описывает Docker Web Service и PostgreSQL на бесплатных планах. Переменная `DATABASE_URL` передаётся приложению из Render Postgres; пароль базы в репозитории не хранится.
+
+Чтобы создать демо:
+
+1. Отправьте актуальную ветку `main` в GitHub.
+2. В Render откройте **New → Blueprint** и подключите репозиторий `Egorshaa/digital-card`.
+3. Проверьте, что Blueprint создаёт только `digital-card-api` и `digital-card-db` на плане **Free**.
+4. Нажмите **Deploy Blueprint**. Render соберёт Dockerfile, применит миграции, заполнит базу и запустит API.
+5. После успешного деплоя откройте `https://<имя-сервиса>.onrender.com/graphql`. Health check доступен по `/ping`.
+
+Это временное демо, не production-размещение: бесплатный Web Service засыпает после 15 минут бездействия, а бесплатный PostgreSQL истекает через 30 дней и затем может быть удалён. Для долгосрочного доступа и production нужны ресурсы с сохранением данных.
+
 ## Ссылки
 
 - GitHub: https://github.com/Egorshaa

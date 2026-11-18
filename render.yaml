@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: digital-card-api
+    runtime: docker
+    plan: free
+    region: frankfurt
+    healthCheckPath: /ping
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    envVars:
+      - key: APP_TYPE
+        value: prod
+      - key: CORS_ORIGINS
+        value: https://sandbox.embed.apollographql.com
+      - key: DATABASE_URL
+        fromDatabase:
+          name: digital-card-db
+          property: connectionString
+
+databases:
+  - name: digital-card-db
+    databaseName: digital_card
+    user: digital_card_user
+    plan: free
+    region: frankfurt

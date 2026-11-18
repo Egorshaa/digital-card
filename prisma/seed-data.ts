@@ -11,7 +11,7 @@ export const seedProfile = {
   description:
     'Backend-разработчик с коммерческим опытом на Node.js и TypeScript. Разрабатываю API, реализую бизнес-логику, ' +
     'работаю с PostgreSQL, кэшированием и очередями. Умею разбираться в существующем коде и работать в команде. ' +
-    'Быстро осваиваю новые технологии, в перспективе хочу развиваться в сторону Golang.',
+    'Быстро осваиваю новые технологии, очень хочу развиваться.',
   location: 'Ростов-на-Дону, Россия',
 
   links: [
@@ -56,14 +56,41 @@ export const seedProfile = {
     },
   ],
 
-  // Только личные проекты, не связанные с работодателями (NDA). Добавляйте сюда свои pet-проекты.
-  // TODO: заменить url на ссылку на реальный репозиторий этого проекта
+  // Публичные проекты из GitHub; описание и технологии основаны на README репозиториев.
   projects: [
     {
       name: 'Digital Card',
       description: 'Цифровая визитка: GraphQL API на NestJS и Prisma с автоматической миграцией и сидингом БД.',
-      url: 'https://github.com/Egorshaa',
+      url: 'https://github.com/Egorshaa/digital-card',
       technologies: ['TypeScript', 'NestJS', 'GraphQL', 'Prisma', 'PostgreSQL', 'Docker'],
+    },
+    {
+      name: 'Central Office Backend',
+      description:
+        'Backend для админ-панели центрального офиса: авторизация и роли администраторов, управление магазинами, владельцами, заявками и терминалами.',
+      url: 'https://github.com/Egorshaa/central-office-backend',
+      technologies: ['TypeScript', 'NestJS', 'Prisma', 'PostgreSQL', 'JWT', 'Docker Compose'],
+    },
+    {
+      name: 'SWAG VPN',
+      description:
+        'Приложение с Telegram-ботом для продажи VPN-подписок через Telegram Stars: управление тарифами, платежами, ключами и подписками.',
+      url: 'https://github.com/Egorshaa/swag-vpn',
+      technologies: ['TypeScript', 'Next.js', 'PostgreSQL', 'Drizzle ORM', 'Telegram Bot API'],
+    },
+    {
+      name: 'Companies Data Loader',
+      description:
+        'Загрузчик данных о компаниях из JSON в PostgreSQL с очисткой и дедупликацией записей, идемпотентной загрузкой и аналитическими SQL-запросами.',
+      url: 'https://github.com/Egorshaa/companies-data-loader',
+      technologies: ['TypeScript', 'PostgreSQL', 'SQL', 'Docker'],
+    },
+    {
+      name: 'Airline Ticket Booking System',
+      description:
+        'Веб-приложение для поиска рейсов, бронирования авиабилетов, личного кабинета и администрирования.',
+      url: 'https://github.com/Egorshaa/airline-ticket-booking-system',
+      technologies: ['PHP', 'MySQL', 'HTML', 'CSS', 'JavaScript'],
     },
   ],
 };

@@ -1,129 +1,201 @@
-# Digital Card — цифровая визитка (GraphQL backend)
+# Digital Card
 
-Backend-приложение, которое презентует разработчика: профиль, навыки, опыт работы и проекты.
-Данные отдаются через GraphQL API, Apollo Sandbox доступен на `/graphql`.
+Backend цифровой визитки разработчика. Приложение предоставляет профиль, навыки, опыт работы и проекты через GraphQL API. GraphQL-схема генерируется из TypeScript-классов, а Apollo Sandbox позволяет исследовать и выполнять запросы в браузере.
 
-**Стек:** TypeScript · Node.js · NestJS · GraphQL (Apollo, code-first) · Prisma · PostgreSQL · Docker · Git
+**Стек:** TypeScript, Node.js, NestJS, Apollo GraphQL, Prisma, PostgreSQL, Docker Compose.
 
-## Запуск с нуля
+## Быстрый запуск
 
-```bash
-docker compose up --build
+### Требования
+
+- Docker Desktop с запущенным Docker Engine.
+- Git — чтобы получить исходный код.
+
+Node.js и npm для запуска через Docker не требуются.
+
+### Запуск приложения
+
+Из корневой папки проекта выполните:
+
+```powershell
+docker compose up --build -d
 ```
 
-Больше ничего делать не нужно. При старте контейнер `app` сам:
-1. применяет миграции (`prisma migrate deploy`);
-2. заполняет БД данными из `prisma/seed-data.ts` (`prisma db seed`);
-3. запускает приложение.
+При первом запуске Docker соберёт приложение и запустит PostgreSQL. Контейнер приложения дождётся готовности базы, применит миграции, заполнит её демонстрационными данными и запустит API.
 
-После этого:
+По умолчанию приложение доступно на `http://localhost:3001`. Если порт изменён в `.env`, используйте значение `APP_PORT` из этого файла.
 
-| Что              | Адрес                          |
-| ---------------- | ------------------------------ |
-| Apollo Sandbox   | http://localhost:3000/graphql  |
-| Swagger (REST)   | http://localhost:3000/docs     |
-| Health-check     | http://localhost:3000/ping     |
+| Сервис | Адрес |
+| --- | --- |
+| Apollo Sandbox | http://localhost:3001/graphql |
+| Swagger UI (REST) | http://localhost:3001/docs |
+| Health check | http://localhost:3001/ping |
 
-### Локальная разработка (без контейнера для приложения)
+В Apollo Sandbox уже подставлен пример запроса. Нажмите **Run**, чтобы получить профиль и связанные данные.
 
-```bash
-cp .env.example .env
-docker compose up db -d
-npm install
-npm run prisma:deploy     # миграции
-npm run prisma:seed       # сидинг
-npm run start:dev
+Проверить состояние контейнеров:
+
+```powershell
+docker compose ps
 ```
 
-В `APP_TYPE=dev` Prisma печатает SQL-запросы в консоль — удобно проверять количество обращений к БД.
+Остановить контейнеры, сохранив данные базы:
 
-## Пример запроса
+```powershell
+docker compose down
+```
+
+Данные PostgreSQL хранятся в Docker volume и сохраняются после остановки контейнеров.
+
+## Пример GraphQL-запроса
 
 ```graphql
-query {
+query ExampleQuery {
   profile {
+    id
     name
     title
     description
     location
-    links { type label url }
-    skills { name category }
-    experience { company position startDate endDate achievements }
-    projects { name url description technologies }
+    links {
+      type
+      label
+      url
+    }
+    skills {
+      name
+      category
+    }
+    experience {
+      company
+      position
+      startDate
+      endDate
+      achievements
+    }
+    projects {
+      name
+      description
+      url
+      technologies
+    }
   }
 }
 ```
 
-Можно запросить любое подмножество полей, а также конкретную визитку: `profile(slug: "egor-shipkin")`.
+Поле `profile` — корневой запрос API. Поля `id`, `name` и остальные данные запрашиваются внутри объекта `profile`.
 
-## REST и Swagger (дополнительно)
+Можно получить конкретный профиль по slug:
 
-Основной API — GraphQL. Дополнительно есть REST-ручки со Swagger на `/docs`: `GET /profile` (визитка целиком), `GET /profile/links|skills|experience|projects`, у всех необязательный query-параметр `slug`.
-Это тонкий фасад: контроллер вызывает те же сервисы, что и GraphQL, и не содержит своей логики или обращений к БД.
-
-## Структура
-
+```graphql
+query {
+  profile(slug: "egor-shipkin") {
+    name
+    projects {
+      name
+      url
+    }
+  }
+}
 ```
-prisma/
-  schema.prisma        модель данных
-  migrations/          SQL-миграции (применяются при старте)
-  seed-data.ts         данные визитки (единственное место, которое нужно править)
-  seed.ts              идемпотентный сидинг
+
+## Что реализовано
+
+- Профиль разработчика с профессиональными ссылками.
+- Навыки с категориями.
+- Опыт работы с датами и достижениями.
+- Проекты с описаниями, ссылками и технологиями.
+- GraphQL API и Apollo Sandbox с включённой introspection.
+- REST API-документация через Swagger.
+- Автоматическое применение миграций и заполнение базы при запуске Docker Compose.
+- Health-check, проверяющий доступность приложения и базы данных.
+
+## Архитектура
+
+### Разделение ответственности
+
+- **GraphQL API:** резолверы описывают запросы и передают работу сервисам. Они не обращаются к Prisma напрямую.
+- **Сервисы данных:** содержат операции чтения из PostgreSQL через Prisma. Сервисы не зависят от GraphQL и используются также REST-контроллерами.
+- **GraphQL-типы:** схема формируется в code-first стиле из TypeScript-классов.
+- **Конфигурация:** доступ к переменным окружения централизован в `ConfigService`.
+
+### Вложенные данные и DataLoader
+
+Связанные поля профиля (`links`, `skills`, `experience`, `projects`) разрешаются отдельно и только тогда, когда их запросил клиент. DataLoader группирует загрузку связанных записей по `profileId` в рамках одного GraphQL-запроса и не разделяет кэш между запросами.
+
+### Prisma и инициализация базы
+
+`prisma/schema.prisma` описывает модели PostgreSQL, а миграции в `prisma/migrations` версионируют изменения схемы. При старте контейнера `docker-entrypoint.sh` выполняет `prisma migrate deploy`, затем запускает сидинг.
+
+Данные профиля хранятся в `prisma/seed-data.ts`. Сидинг пересоздаёт профиль и его связанные записи в транзакции, поэтому повторное выполнение не создаёт дубликатов.
+
+## Запуск для локальной разработки
+
+В этом режиме приложение запускается на хосте, а PostgreSQL — в Docker. Требуется Node.js 20 или новее.
+
+В PowerShell из корневой папки проекта:
+
+```powershell
+if (!(Test-Path .env)) { Copy-Item .env.example .env }
+docker compose up -d db
+npm install
+npm run prisma:generate
+npm run prisma:deploy
+npm run prisma:seed
+npm run start:dev
+```
+
+После первоначальной настройки для повторного запуска достаточно:
+
+```powershell
+docker compose up -d db
+npm run start:dev
+```
+
+Базу необходимо запустить до `npm run start:dev`. Если PostgreSQL остановлен, Prisma выдаст ошибку `P1001: Can't reach database server`.
+
+Значения портов и подключения к базе настраиваются в `.env`. Пример конфигурации находится в `.env.example`.
+
+## Структура проекта
+
+```text
 src/
-  config/              ConfigService — единая точка доступа к переменным окружения
-  common/              controller.key / resolver.key, PrismaModule, утилиты
-  graphql/             настройка Apollo + DataLoader'ы
+  config/                  Конфигурация приложения
+  common/                  Общие модули и ключи API
+  graphql/                 Настройка Apollo GraphQL и DataLoader
   services/
-    profile/           корневой запрос и field-резолверы (GraphQL-слой)
-    links|skills|experience|projects/   доступ к данным (service) + GraphQL-тип (type)
-    ping/              REST /ping для health-check
+    profile/               Корневой GraphQL-запрос и REST-контроллер
+    links/                 Ссылки профиля
+    skills/                Навыки
+    experience/            Опыт работы
+    projects/              Проекты
+    ping/                  Health check
+prisma/
+  schema.prisma            Модели базы данных
+  migrations/              SQL-миграции
+  seed-data.ts             Данные визитки
+  seed.ts                  Идемпотентный сидинг
+Dockerfile                 Сборка приложения
+docker-compose.yml         Приложение и PostgreSQL
 ```
 
-В каждом `services/<name>/` один и тот же набор: `*.module.ts`, `*.service.ts`, `*.type.ts` (+ `*.resolver.ts`, `*.dto.ts` там, где нужно).
+## Команды разработки
 
-## Архитектурные решения
+| Команда | Назначение |
+| --- | --- |
+| `npm run start:dev` | Запуск NestJS в watch-режиме |
+| `npm run build` | Сборка приложения |
+| `npm run prisma:generate` | Генерация Prisma Client |
+| `npm run prisma:deploy` | Применение миграций |
+| `npm run prisma:seed` | Заполнение базы данными из `seed-data.ts` |
+| `npm run prisma:migrate` | Создание миграции при разработке схемы |
+| `npm run format` | Форматирование TypeScript-файлов |
 
-**Разделение ответственности на три слоя.**
-- *GraphQL-слой* (`profile.resolver.ts`) — только описывает форму API и делегирует. Никакой логики и обращений к Prisma.
-- *Слой данных* (`*.service.ts`) — единственное место, где используется `PrismaService`. Сервисы ничего не знают о GraphQL, поэтому их можно переиспользовать (REST, cron, тесты).
-- *Типы* (`*.type.ts`) — GraphQL-схема в code-first стиле: схема генерируется из классов, и нет рассинхрона между SDL и кодом.
+## Ссылки
 
-**Оптимизация вложенных запросов (проблема N+1) через DataLoader.**
-Связанные сущности (`links`, `skills`, `experience`, `projects`) не подгружаются вместе с профилем через `include`.
-Вместо этого каждое поле — отдельный `@ResolveField`, который обращается к DataLoader из контекста запроса:
-- если клиент не запросил `skills`, запрос в таблицу `skill` не выполняется вообще (нет лишних JOIN'ов и лишних данных);
-- если запрошены все поля — это ровно 1 запрос профиля + по 1 запросу на каждую связанную таблицу (`WHERE profile_id IN (...)`), независимо от количества профилей;
-- DataLoader'ы создаются заново на каждый запрос (`context` в `graphql.module.ts`), поэтому кэш не «протекает» между клиентами.
-
-Сейчас профиль один, но решение остается корректным, если появится список профилей: количество запросов не вырастет.
-
-**Prisma.** Типобезопасный доступ к БД, миграции в репозитории, каскадное удаление на уровне БД (`ON DELETE CASCADE`). Имена таблиц и колонок в БД — `snake_case` (`@map`), в коде — `camelCase`. Достижения и технологии хранятся как `TEXT[]` — это простые списки без собственных связей, отдельная таблица была бы избыточной.
-
-**Инициализация БД.** Миграции — это версионируемый и воспроизводимый способ создать схему (в отличие от `db push`). Сидинг идемпотентен: профиль пересоздается одной транзакцией, поэтому повторный запуск контейнера не создает дубликатов, а правка `seed-data.ts` применяется после перезапуска.
-
-**controllerKey / resolverKey.** Пути REST-эндпоинтов (`controllerKey`) и имена GraphQL-операций (`resolverKey`) вынесены в один файл, а не разбросаны строками по декораторам.
-
-**Конфигурация.** Обертка `ConfigService` над `@nestjs/config`: остальной код не читает `process.env` напрямую и не зависит от имен переменных.
-
-**Валидация.** Глобальный `ValidationPipe` (`whitelist`, `forbidNonWhitelisted`) проверяет аргументы запросов (`ProfileArgs`).
-
-**Apollo Sandbox** включен явно (`ApolloServerPluginLandingPageLocalDefault({ embed: true })` + `introspection: true`), потому что в `NODE_ENV=production` Apollo отключает и то, и другое по умолчанию, а в задании Sandbox должен работать на задеплоенной версии.
-
-**Docker.** Двухэтапная сборка (builder → runtime). `docker-compose` ждет готовности PostgreSQL по healthcheck, прежде чем стартовать приложение.
-
-## Деплой (Render / Railway)
-
-Подойдет деплой из `Dockerfile` + управляемый PostgreSQL. Нужны переменные:
-`DATABASE_URL` (строка подключения), `APP_TYPE=prod`. Порт берется из `PORT`, который платформа задает сама. Миграции и сидинг выполнятся автоматически при старте через `docker-entrypoint.sh`.
-
-## Скрипты
-
-| Команда                  | Назначение                             |
-| ------------------------ | -------------------------------------- |
-| `npm run start:dev`      | запуск с watch                         |
-| `npm run build`          | сборка                                 |
-| `npm run prisma:migrate` | создать новую миграцию (dev)           |
-| `npm run prisma:deploy`  | применить миграции                     |
-| `npm run prisma:seed`    | заполнить БД                           |
-| `npm run prisma:reset`   | сбросить БД, применить миграции и сид  |
-| `npm run format`         | prettier                               |
+- GitHub: https://github.com/Egorshaa
+- [Digital Card](https://github.com/Egorshaa/digital-card)
+- [Central Office Backend](https://github.com/Egorshaa/central-office-backend)
+- [SWAG VPN](https://github.com/Egorshaa/swag-vpn)
+- [Companies Data Loader](https://github.com/Egorshaa/companies-data-loader)
+- [Airline Ticket Booking System](https://github.com/Egorshaa/airline-ticket-booking-system)

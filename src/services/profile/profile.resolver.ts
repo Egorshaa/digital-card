@@ -7,6 +7,7 @@ import { ProfileLinkType } from '../links/links.type';
 import { ProjectType } from '../projects/projects.type';
 import { SkillType } from '../skills/skills.type';
 import { ProfileArgs } from './profile.dto';
+import { GetBySlugQuery } from './profile.params';
 import { ProfileService } from './profile.service';
 import { ProfileType } from './profile.type';
 
@@ -16,7 +17,8 @@ export class ProfileResolver {
 
   @Query(() => ProfileType, { name: resolverKey.profile.root, description: 'Цифровая визитка' })
   getProfile(@Args() args: ProfileArgs) {
-    return this.profileService.get(args.slug);
+    const params: GetBySlugQuery = { slug: args.slug };
+    return this.profileService.get(params);
   }
 
   @ResolveField(() => [ProfileLinkType], { name: resolverKey.profile.links, description: 'Профессиональные ссылки' })

@@ -6,6 +6,7 @@ import { LinksService } from '../links/links.service';
 import { ProjectsService } from '../projects/projects.service';
 import { SkillsService } from '../skills/skills.service';
 import { toExperience, toLink, toProfile, toProject, toSkill } from './profile.mapper';
+import { GetBySlugQuery } from './profile.params';
 
 @Injectable()
 export class ProfileService {
@@ -17,51 +18,51 @@ export class ProfileService {
     private readonly projectsService: ProjectsService,
   ) {}
 
-  async get(slug?: string) {
+  async get(params: GetBySlugQuery) {
     const profile = await this.prisma.profile.findFirst({
-      where: slug ? { slug } : undefined,
+      where: params.slug ? { slug: params.slug } : undefined,
       orderBy: { id: 'asc' },
     });
     if (!profile) {
-      throw new NotFoundException(slug ? `Profile "${slug}" not found` : 'Profile not found');
+      throw new NotFoundException(params.slug ? `Profile "${params.slug}" not found` : 'Profile not found');
     }
     return profile;
   }
 
   /** Визитка целиком для REST: профиль + 4 параллельных запроса к связанным таблицам. */
-  async getFull(slug?: string) {
-    const profile = await this.get(slug);
+  async getFull(params: GetBySlugQuery) {
+    const profile = await this.get(params);
     const ids = [profile.id];
     const [[links], [skills], [experience], [projects]] = await Promise.all([
-      this.linksService.listByProfileIds(ids),
-      this.skillsService.listByProfileIds(ids),
-      this.experienceService.listByProfileIds(ids),
-      this.projectsService.listByProfileIds(ids),
+      this.linksService.listByProfileIds({ profileIds: ids }),
+      this.skillsService.listByProfileIds({ profileIds: ids }),
+      this.experienceService.listByProfileIds({ profileIds: ids }),
+      this.projectsService.listByProfileIds({ profileIds: ids }),
     ]);
     return toProfile(profile, { links, skills, experience, projects });
   }
 
-  async links(slug?: string) {
-    const profile = await this.get(slug);
-    const [rows] = await this.linksService.listByProfileIds([profile.id]);
+  async links(params: GetBySlugQuery) {
+    const profile = await this.get(params);
+    const [rows] = await this.linksService.listByProfileIds({ profileIds: [profile.id] });
     return rows.map(toLink);
   }
 
-  async skills(slug?: string) {
-    const profile = await this.get(slug);
-    const [rows] = await this.skillsService.listByProfileIds([profile.id]);
+  async skills(params: GetBySlugQuery) {
+    const profile = await this.get(params);
+    const [rows] = await this.skillsService.listByProfileIds({ profileIds: [profile.id] });
     return rows.map(toSkill);
   }
 
-  async experience(slug?: string) {
-    const profile = await this.get(slug);
-    const [rows] = await this.experienceService.listByProfileIds([profile.id]);
+  async experience(params: GetBySlugQuery) {
+    const profile = await this.get(params);
+    const [rows] = await this.experienceService.listByProfileIds({ profileIds: [profile.id] });
     return rows.map(toExperience);
   }
 
-  async projects(slug?: string) {
-    const profile = await this.get(slug);
-    const [rows] = await this.projectsService.listByProfileIds([profile.id]);
+  async projects(params: GetBySlugQuery) {
+    const profile = await this.get(params);
+    const [rows] = await this.projectsService.listByProfileIds({ profileIds: [profile.id] });
     return rows.map(toProject);
   }
 }

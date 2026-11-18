@@ -9,7 +9,7 @@ import { SkillsService } from '../../services/skills/skills.service';
 import type { GqlLoaders, ProfileLoader } from './loader.type';
 
 const byProfile = <T>(batch: (profileIds: readonly number[]) => Promise<T[][]>): ProfileLoader<T> =>
-  new DataLoader<number, T[]>(batch);
+  new DataLoader<number, T[]>((ids) => batch(ids));
 
 @Injectable()
 export class LoaderService {
@@ -26,10 +26,10 @@ export class LoaderService {
    */
   create(): GqlLoaders {
     return {
-      links: byProfile(ids => this.links.listByProfileIds(ids)),
-      skills: byProfile(ids => this.skills.listByProfileIds(ids)),
-      experience: byProfile(ids => this.experience.listByProfileIds(ids)),
-      projects: byProfile(ids => this.projects.listByProfileIds(ids)),
+      links: byProfile(ids => this.links.listByProfileIds({ profileIds: ids })),
+      skills: byProfile(ids => this.skills.listByProfileIds({ profileIds: ids })),
+      experience: byProfile(ids => this.experience.listByProfileIds({ profileIds: ids })),
+      projects: byProfile(ids => this.projects.listByProfileIds({ profileIds: ids })),
     };
   }
 }
